@@ -2,6 +2,9 @@
 #
 # Fetch TED talks from archive.org and upload meta-info and video
 # files to for Frikanalen.
+#
+# To run on Debian, install these packages:
+#   perl-modules libwww-mechanize-perl libjson-perl libio-prompter-perl
 
 use warnings;
 use strict;
