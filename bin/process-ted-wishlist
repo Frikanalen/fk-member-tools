@@ -1,0 +1,228 @@
+#!/usr/bin/perl
+#
+# Fetch TED talks from archive.org and upload meta-info and video
+# files to for Frikanalen.
+
+use warnings;
+use strict;
+use File::Basename;
+use XML::Simple qw(:strict);
+use Data::Dumper;
+use WWW::Mechanize;
+use JSON;
+use IO::Prompter;
+use Net::FTP;
+
+use vars qw($username $password);
+
+# Set to 1 to create DV from MPEG2
+my $recode = 1;
+
+# Set to 1 to upload to ftp site
+my $upload = 1;
+
+$username = 'pere';
+$password = prompt("Password for $username:", -echo=>'*', -stdio);
+
+sub load_entries {
+    my ($filename) = @_;
+    my @entries;
+    open(my $fh, "<", $filename) || die "unable to open $filename";
+    while (<$fh>) {
+        chomp;
+        next if m/^#/;
+        next if m/^$/;
+        push(@entries, $_);
+    }
+    close($fh);
+    return @entries;
+}
+
+sub load_meta {
+    my ($metafile) = @_;
+
+    my $ref = XMLin($metafile, KeyAttr => [], ForceArray => []);
+    return $ref;
+}
+
+sub submit_new_video {
+    my ($mech, $url, $ref) = @_;
+
+    my $videosurl = 'http://beta.frikanalen.no/api/videos';
+    my $addvideourl = 'http://beta.frikanalen.tv/members/video/new/';
+    my $loginurl = 'http://beta.frikanalen.tv/api/api-auth/login/?next=/api/';
+
+    # FIXME Make sure the entry isn't already submitted
+    $mech->get( "$videosurl?q=TED" );
+    my $jsonref = decode_json($mech->content());
+#    print Dumper($jsonref);
+    for my $videoref (@{$jsonref->{results}}) {
+        if ($url eq $videoref->{'ref_url'}) {
+            print "info: already registered, skipping submission\n";
+            return;
+        }
+    }
+
+    print "info: posting to $videosurl to create video entry\n";
+
+    $mech->get( $loginurl );
+
+    $mech->submit_form(
+        form_number => 1,
+            fields      => {
+            username    => $username, password    => $password,
+        }
+        );
+    # FIXME figure out how to detect when login fail
+    print $mech->status(), "\n";
+
+    # FIXME POST via the API did not work, so use the member page form
+    # until it work.
+    if (1) {
+        $mech->get($addvideourl);
+
+#       print Dumper($ref);
+
+        $mech->field('duration', $ref->{'runtime'});
+        $mech->field('header', $ref->{'description'} . "\n\n" .
+                     "TED talk downloaded from The Internet Archive on $url");
+        $mech->field('name', "TED - " . $ref->{'title'});
+        $mech->field('description',
+                     "TED talk downloaded from The Internet Archive.");
+        $mech->field('ref_url', $url);
+
+        my $form = $mech->current_form();
+
+        # Do not publish before it is manually reviewed
+        $form->find_input('publish_on_web')->value(undef);
+
+        # Assume TONO records until manually reviewed
+        $form->find_input('has_tono_records')->check();
+
+        # Do not set the filler flagg by default
+        $form->find_input('is_filler')->value(undef);
+
+# Use default editor and organization
+#    $mech->select('editor', 'pere');
+#    $mech->select('organization', 'NUUG');
+
+        # FIXME, figure out way to select using name, not code
+        $mech->select('categories', '117'); # Samfunn
+
+        $mech->submit();
+    } else {
+        # FIXME Use $videosurl.
+    }
+
+    print $mech->content(),"\n";
+}
+sub ftp_upload {
+    my ($ftpsite, $username, $password, $directory, $dvfile) = @_;
+
+    print "info: uploading $dvfile to $ftpsite\n";
+    my $ftp = Net::FTP->new($ftpsite, Debug => 0)
+        or die "Cannot connect to $ftpsite: $@";
+    $ftp->login($username, $password)
+        or die "Cannot login ", $ftp->message;
+    $ftp->cwd("$directory")
+        or die "Cannot change working directory ", $ftp->message;
+    $ftp->put($dvfile)
+        or die "put failed ", $ftp->message;
+    $ftp->quit;
+}
+
+sub find_subtitle {
+    my ($mech, $metaref, $langlistref, $basename) = @_;
+    my $subtitlefile = undef;
+    print "info: Looking for subtitle file.\n";
+    for my $lc ( @{$langlistref} ) {
+        my $talk_id = $metaref->{'talk_id'};
+        my $subtitleurl =
+            "http://ted2srt.org/download?tid=$talk_id&type=srt&lang=$lc";
+        eval {
+            $mech->get($subtitleurl);
+            # Ignore HTML redirect, as it isn't a SRT file
+            if ("text/plain" eq $mech->ct()) {
+                $subtitlefile = "${basename}.$lc.srt";
+                open(my $fh, ">", $subtitlefile)
+                    || die "unable to write to $subtitlefile";
+                print $fh $mech->content();
+                close($fh);
+                print "info: Found $lc subtitle file on $subtitleurl.\n";
+                last;
+            }
+        } or do {
+            print "info: Missing $lc subtext file\n";
+        };
+    }
+    return $subtitlefile;
+}
+
+sub process_ted_list {
+    my ($listfile) = @_;
+    my @entries = load_entries($listfile);
+
+    my $mech = WWW::Mechanize->new();
+
+    for my $url (@entries) {
+        my $basename = basename($url);
+        my $durl = $url;
+        $durl =~ s%/details/%/download/%;
+        my $mpegurl="$durl/$basename.pegssc.mpeg";
+        my $mpegfile = basename($mpegurl);
+        my $metaurl = "$durl/${basename}_meta.xml";
+        my $metafile = basename($metaurl);
+
+        # Fetch video file and meta info
+        if ( ! -f $metafile ) {
+            print "info: fetching $metaurl\n";
+            system("wget", $metaurl);
+        } else {
+            print "info: not fetching $metaurl, already present\n";
+        }
+        my $metaref = load_meta($metafile);
+        submit_new_video($mech, $url, $metaref);
+
+        my $subtitlefile =
+            find_subtitle($mech, $metaref, ['nb','nn'], $basename);
+
+        if ( ! -f $mpegfile ) {
+            print "info: downloading $mpegurl\n";
+            system("wget", $mpegurl);
+        } else {
+            print "info: not downloading $mpegurl, already present\n";
+        }
+
+        my $dvfile = "$basename.dv";
+        if ( $recode) {
+            if (-f $mpegfile && ! -f $dvfile ) {
+            # Recode to DV
+                print "info: recoding from MPEG to DV PAL\n";
+                my @cmd = ("ffmpeg",
+                           "-y",
+                           "-i", $mpegfile,
+                           "-target", "pal-dv");
+#                if (defined $subtitlefile) {
+#                    push(@cmd, "-vf", "subtitles=$subtitlefile");
+#                }
+                my $retval = system(@cmd, $dvfile);
+                print "info: exit code $retval / $?\n";
+            } else {
+                print "info: not recoding, DV file $dvfile already exist\n";
+            }
+        }
+
+        if ( -f $dvfile ) {
+            # Place files in "/home/phed/fkbeta/upload/pere/" on
+            # simula.  Only available via ftp.
+            if ($upload) {
+                ftp_upload('ftp.frikanalen.tv', $username, $password,
+                           $username, $dvfile);
+            }
+        } else {
+            print "error: missing DV file $dvfile\n";
+        }
+    }
+}
+
+process_ted_list($ARGV[0] or "ted-wishlist.txt");
