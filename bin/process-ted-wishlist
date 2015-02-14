@@ -23,7 +23,7 @@ use Net::FTP;
 
 use vars qw($username $password);
 
-# Set to 1 to create DV from MPEG2
+# Set to 1 to create DV from MPEG
 my $recode = 1;
 
 # Set to 1 to upload to ftp site
@@ -176,7 +176,7 @@ sub process_ted_list {
         my $basename = basename($url);
         my $durl = $url;
         $durl =~ s%/details/%/download/%;
-        my $mpegurl="$durl/$basename.pegssc.mpeg";
+        my $mpegurl="$durl/$basename.mp4";
         my $mpegfile = basename($mpegurl);
         my $metaurl = "$durl/${basename}_meta.xml";
         my $metafile = basename($metaurl);
