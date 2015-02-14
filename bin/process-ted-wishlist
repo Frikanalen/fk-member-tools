@@ -29,6 +29,9 @@ my $recode = 1;
 # Set to 1 to upload to ftp site
 my $upload = 1;
 
+# use ffmpeg or melt
+my $use_ffmpeg = 0;
+
 $username = 'pere';
 $password = prompt("Password for $username:", -echo=>'*', -stdio);
 
@@ -206,14 +209,23 @@ sub process_ted_list {
             if (-f $mpegfile && ! -f $dvfile ) {
             # Recode to DV
                 print "info: recoding from MPEG to DV PAL\n";
-                my @cmd = ("ffmpeg",
-                           "-y",
-                           "-i", $mpegfile,
-                           "-target", "pal-dv");
-#                if (defined $subtitlefile) {
-#                    push(@cmd, "-vf", "subtitles=$subtitlefile");
-#                }
-                my $retval = system(@cmd, $dvfile);
+                my @cmd;
+                if ($use_ffmpeg) {
+                    @cmd = ("ffmpeg",
+                            "-y",
+                            "-i", $mpegfile,
+                            "-target", "pal-dv");
+                    if (defined $subtitlefile) {
+                        push(@cmd, "-vf", "subtitles=$subtitlefile");
+                    }
+                    push(@cmd, $dvfile);
+                } else {
+                    @cmd = ("melt",
+                            "-profile", "dv_pal_wide",
+                            $mpegfile,
+                            "-consumer", "avformat:$dvfile");
+                }
+                my $retval = system(@cmd);
                 print "info: exit code $retval / $?\n";
             } else {
                 print "info: not recoding, DV file $dvfile already exist\n";
