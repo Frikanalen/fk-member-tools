@@ -109,7 +109,7 @@ sub submit_new_video {
 
         $mech->field('duration', $ref->{'runtime'});
         $mech->field('header', $ref->{'description'} . "\n\n" .
-                     "TED talk downloaded from The Internet Archive on $url");
+                     "TED talk downloaded from The Internet Archive.");
         $mech->field('name', "TED - " . $ref->{'title'});
         $mech->field('description',
                      "TED talk downloaded from The Internet Archive.");
