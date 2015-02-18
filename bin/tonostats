@@ -11,51 +11,37 @@ use JSON;
 use LWP::Simple;
 use Frikanalen::API;
 
-sub get_tono_stats_page {
-    my $url = shift;
-    my $jsonstr = get($url);
-    my $json = decode_json( $jsonstr );
-#    print Dumper($json);
-    unless ($json->{'results'}) {
-        return;
+sub countvideos {
+    my ($video, $statsref) = @_;
+    my $durationsec = parse_duration($video->{'duration'});
+    if (exists $video->{'has_tono_records'}
+        && $video->{'has_tono_records'}) {
+        $statsref->{'tono'}++;
+        $statsref->{'tonosec'} += $durationsec;
+        $orgs{$video->{'organization'}}{tono}++;
+        $orgsecs{$video->{'organization'}}{tono} += $durationsec;
+        push(@{$orgs{$video->{'organization'}}{tonoids}},
+             $video->{id});
+    } else {
+        $statsref->{'notono'}++;
+        $statsref->{'notonosec'} += $durationsec;
+        $orgs{$video->{'organization'} || ""}{notono}++;
+        $orgsecs{$video->{'organization'} || ""}{notono} += $durationsec;
     }
-    my $tono = 0;
-    my $notono = 0;
-    my $tonosec = 0;
-    my $notonosec = 0;
-    foreach my $video (@{$json->{'results'}}) {
-        my $durationsec = parse_duration($video->{'duration'});
-        if (exists $video->{'has_tono_records'}
-            && $video->{'has_tono_records'}) {
-            $tono++;
-            $tonosec += $durationsec;
-            $orgs{$video->{'organization'}}{tono}++;
-            $orgsecs{$video->{'organization'}}{tono} += $durationsec;
-            push(@{$orgs{$video->{'organization'}}{tonoids}},
-                 $video->{id});
-#            print Dumper($video);
-#            exit 0;
-        } else {
-            $notono++;
-            $notonosec += $durationsec;
-            $orgs{$video->{'organization'} || ""}{notono}++;
-            $orgsecs{$video->{'organization'} || ""}{notono} += $durationsec;
-        }
-    }
-    if (defined $json->{'next'}) {
-        my ($newtono, $newnotono, $newtonosec, $newnotonosec) =
-            get_tono_stats_page($json->{'next'});
-        $tono += $newtono;
-        $notono += $newnotono;
-        $tonosec += $newtonosec;
-        $notonosec += $newnotonosec;
-    }
-    return ($tono, $notono, $tonosec, $notonosec);
 }
 
 sub get_tono_stats {
-    my $url = 'http://beta.frikanalen.tv/api/videos/';
-    return get_tono_stats_page($url);
+    my $statsref = {
+        'tono' => 0,
+        'notono' => 0,
+        'tonosec' => 0,
+        'notonosec' => 0,
+    };
+    process_videos(\&countvideos, $statsref, undef);
+    return ($statsref->{'tono'},
+            $statsref->{'notono'},
+            $statsref->{'tonosec'},
+            $statsref->{'notonosec'});
 }
 sub print_tono_stats {
     my ($with, $without, $withsec, $withoutsec) = get_tono_stats();
