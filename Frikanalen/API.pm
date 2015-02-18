@@ -32,14 +32,12 @@ sub parse_duration {
 
 sub process_videos {
     my ($callback, $callbackdata, $query) = @_;
-    print $callback;
     my $count = 0;
     my $url = $videosurl;
+    if (defined $query) {
+        $url .= "?q=$query";
+    }
     while ($url) {
-        if (defined $query) {
-            $url .= "?1=$query";
-        }
-
         my $jsonstr = get($url);
         my $json = decode_json( $jsonstr );
         unless ($json->{'results'}) {
