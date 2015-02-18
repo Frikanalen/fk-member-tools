@@ -23,6 +23,14 @@ use Net::FTP;
 
 use vars qw($username $password);
 
+my $loginurl = 'http://beta.frikanalen.tv/api/api-auth/login/?next=/api/';
+my $videosurl = 'http://beta.frikanalen.no/api/videos';
+my $addvideourl = 'http://beta.frikanalen.tv/members/video/new/';
+
+my $mediadir = "/tank/new_media/media";
+
+my $ftphost = 'ftp.frikanalen.tv';
+
 # Set to 1 to create DV from MPEG
 my $recode = 1;
 
@@ -32,7 +40,7 @@ my $upload = 1;
 # use ffmpeg or melt
 my $use_ffmpeg = 0;
 
-my $submit_new_video = 0;
+my $submit_new_video = 1;
 
 $username = 'pere';
 $password = prompt("Password for $username:", -echo=>'*', -stdio);
@@ -69,22 +77,27 @@ sub load_meta {
     return $ref;
 }
 
+sub find_ted_with_ref {
+    my ($mech, $refurl) =  @_;
+
+    $mech->get( "$videosurl?q=TED" );
+    my $jsonref = decode_json($mech->content());
+    for my $videoref (@{$jsonref->{results}}) {
+        if ($refurl eq $videoref->{'ref_url'}) {
+            return $videoref->{'id'};
+        }
+    }
+    return undef;
+}
+
 sub submit_new_video {
     my ($mech, $url, $ref) = @_;
 
-    my $videosurl = 'http://beta.frikanalen.no/api/videos';
-    my $addvideourl = 'http://beta.frikanalen.tv/members/video/new/';
-    my $loginurl = 'http://beta.frikanalen.tv/api/api-auth/login/?next=/api/';
-
     # FIXME Make sure the entry isn't already submitted
-    $mech->get( "$videosurl?q=TED" );
-    my $jsonref = decode_json($mech->content());
-#    print Dumper($jsonref);
-    for my $videoref (@{$jsonref->{results}}) {
-        if ($url eq $videoref->{'ref_url'}) {
-            print "info: already registered, skipping submission\n";
-            return;
-        }
+    my $id = find_ted_with_ref($mech, $url);
+    if (defined $id) {
+        print "info: already registered, skipping submission\n";
+        return $id;
     }
 
     print "info: posting to $videosurl to create video entry\n";
@@ -141,7 +154,7 @@ sub submit_new_video {
     print $mech->content(),"\n";
 }
 sub ftp_upload {
-    my ($ftpsite, $username, $password, $directory, $dvfile) = @_;
+    my ($ftpsite, $username, $password, $directory, $dvfile, $remotefile) = @_;
 
     print "info: uploading $dvfile to $ftpsite\n";
     my $ftp = Net::FTP->new($ftpsite, Debug => 0)
@@ -150,9 +163,30 @@ sub ftp_upload {
         or die "Cannot login ", $ftp->message;
     $ftp->cwd("$directory")
         or die "Cannot change working directory ", $ftp->message;
-    $ftp->put($dvfile)
+    $ftp->put($dvfile, $remotefile)
         or die "put failed ", $ftp->message;
     $ftp->quit;
+}
+
+sub inject_file {
+    my ($filepath, $id, $type) = @_;
+    my $targetdir = "$mediadir/$id/$type";
+    my $filename = basename($filepath);
+    my $targetpath = "$targetdir/$filename";
+    if ( ! -d $targetdir ) {
+        0 == system("mkdir", "-p", $targetdir)
+            or die "unable to create $targetdir";
+    }
+    if ( ! -d $targetdir ) {
+        die "something went wrong when creating $targetdir";
+    }
+    if ( ! -e $targetpath ) {
+        print join(" ", "cp", "-a", $filepath, $targetpath, "\n");
+        0 == system("cp", "-a", $filepath, $targetpath)
+            or die "unable to copy to $targetpath";
+    } else {
+        print "File $targetpath already exist.\n";
+    }
 }
 
 sub find_subtitle {
@@ -224,11 +258,13 @@ sub process_ted_list {
         if ($submit_new_video) {
             submit_new_video($mech, $url, $metaref);
         }
+        my $id = find_ted_with_ref($mech, $url);
 
         my $subtitlefile =
             find_subtitle($mech, $metaref, ['nb','nn'], $basename);
 
         my $dvfile = "$basename.dv";
+        my $ogvfile = "$basename.ogv";
         if ( $recode) {
             if (-f $mpegfile && ! -f $dvfile ) {
             # Recode to DV
@@ -254,14 +290,42 @@ sub process_ted_list {
             } else {
                 print "info: not recoding, DV file $dvfile already exist\n";
             }
+            if ( -f $mpegfile && ! -f $ogvfile ) {
+                my @cmd = ('ffmpeg', '-i', $mpegfile,
+                           '-v', 'verbose', '-y',
+                           '-threads', '8',
+                           '-vcodec', 'libtheora',
+                           '-acodec', 'libvorbis',
+                           '-qscale:v', '2',
+                           '-qscale:a', '2',
+                           '-vf', 'scale=720:-1',
+                           $ogvfile);
+                my $retval = system(@cmd);
+                print "info: exit code $retval / $?\n";
+            }
+
         }
 
         if ( -f $dvfile ) {
-            # Place files in "/home/phed/fkbeta/upload/pere/" on
-            # simula.  Only available via ftp.
-            if ($upload) {
-                ftp_upload('ftp.frikanalen.tv', $username, $password,
-                           $username, $dvfile);
+            if ($id) {
+                # Place files in "/home/phed/fkbeta/upload/pere/" on
+                # simula or directly in media directory if it is
+                # available.
+                if ( ! -d $mediadir) { # Assume we are not running on ftp.frikanalen.tv
+                    if ($upload) {
+                        ftp_upload($ftphost, $username, $password,
+                                   $username, $mpegfile, "$id-original-$dvfile");
+                        ftp_upload($ftphost, $username, $password,
+                                   $username, $dvfile, "$id-broadcast-$dvfile");
+                    }
+                } else {
+                    # Copy files in place instead
+                    inject_file($mpegfile, $id, 'original');
+                    inject_file($dvfile, $id, 'broadcast');
+                    inject_file($ogvfile, $id, 'theora');
+                }
+            } else {
+                print "error: missing ID, not uploading files\n";
             }
         } else {
             print "error: missing DV file $dvfile\n";
