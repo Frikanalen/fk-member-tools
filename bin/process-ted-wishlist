@@ -20,6 +20,7 @@ use WWW::Mechanize;
 use JSON;
 use IO::Prompter;
 use Net::FTP;
+use Frikanalen::API;
 
 use vars qw($username $password);
 
@@ -79,21 +80,21 @@ sub load_meta {
 
 sub find_ted_with_ref {
     my ($mech, $refurl) =  @_;
-
-    $mech->get( "$videosurl?q=TED" );
-    my $jsonref = decode_json($mech->content());
-    for my $videoref (@{$jsonref->{results}}) {
-        if ($refurl eq $videoref->{'ref_url'}) {
-            return $videoref->{'id'};
-        }
-    }
-    return undef;
+    my $ref = { 'id' => undef };
+    process_videos(
+        sub {
+            my ($video, $ref) = @_;
+            if ($refurl eq $video->{'ref_url'}) {
+                $ref->{'id'} = $video->{'id'};
+            }
+        },
+        $ref, "TED");
+    return $ref->{'id'};
 }
 
 sub submit_new_video {
     my ($mech, $url, $ref) = @_;
 
-    # FIXME Make sure the entry isn't already submitted
     my $id = find_ted_with_ref($mech, $url);
     if (defined $id) {
         print "info: already registered, skipping submission\n";
