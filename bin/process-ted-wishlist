@@ -152,7 +152,7 @@ sub submit_new_video {
         # FIXME Use $videosurl.
     }
 
-    print $mech->content(),"\n";
+#    print $mech->content(),"\n";
 }
 sub ftp_upload {
     my ($ftpsite, $username, $password, $directory, $dvfile, $remotefile) = @_;
