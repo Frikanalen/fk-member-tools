@@ -21,6 +21,7 @@ use JSON;
 use IO::Prompter;
 use Net::FTP;
 use Frikanalen::API;
+use Config::Tiny;
 
 use vars qw($username $password);
 
@@ -43,8 +44,10 @@ my $use_ffmpeg = 0;
 
 my $submit_new_video = 1;
 
-$username = 'pere';
-$password = prompt("Password for $username:", -echo=>'*', -stdio);
+my $config = Config::Tiny->read( $ENV{'HOME'} . '/.frikanalen.ini' );
+$username = $config->{'auth'}->{'username'} || 'pere';
+$password = $config->{'auth'}->{'password'} ||
+    prompt("Password for $username:", -echo=>'*', -stdio);
 
 sub get_duration {
     my ($filename) = @_;
