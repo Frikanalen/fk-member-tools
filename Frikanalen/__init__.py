@@ -107,7 +107,6 @@ Tried to use mechanize, but did not find a way to set content-type
 with POST request.  Using urllib2 until I find a way to do it.
 
 """
-        print "Frikanalen.json_post()"
         json_data = json.dumps(jsondata)
         headers = {
             'Content-type': 'application/json; charset=UTF-8',
@@ -120,7 +119,7 @@ with POST request.  Using urllib2 until I find a way to do it.
         req = urllib2.Request(url, data = json_data, headers = headers)
         f = urllib2.urlopen(req)
         # FIXME check return value
-        print f
+        return f
 
 class Schedule:
     scheduledata = []
