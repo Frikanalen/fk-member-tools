@@ -198,13 +198,42 @@ The timestamp argument should be a datetime.datetime object.
             i += 1
         return False
 
-    def next_free_slot(self, starttime):
+    def free_slots_between(self, starttime, endtime, minduration=datetime.timedelta(0)):
         """
-Return next free slot after starttime.
+Return a list of free slot at or after starttime, and before endtime.
 
-FIXME need to be implemented.
+FIXME need to implemnt filtering using starttime and endtime.
 """
-        True
+        url = '%s?date=%s&days=%s&page_size=1000' % (
+            self.frikanalen.scheduleurl,
+            starttime.strftime("%Y%m%d"),
+            (endtime - starttime).days
+            )
+        print url
+        self.frikanalen.mech.open(url)
+        jsonstr = self.frikanalen.mech.response().read()
+        j = json.loads(jsonstr.decode('utf8'))
+        print j
+        if j['count'] != len(j['results']):
+            raise Exception("incorrect length in scheduleitems result, got %d not %d" % (len(j['results']), j['count']))
+        freeslots = []
+        lastvend = None
+        for entry in j['results']:
+            vstart = Video.start2datetime(entry['starttime'])
+            vdur = Video.duration2timedelta(entry['duration'])
+            vend = vstart + vdur
+            print vstart, vdur, vend
+            # FIXME limit to the time range requested
+            if lastvend is not None:
+                vhole = vstart - lastvend
+                if minduration <= vhole:
+                    print minduration, '<', vdur
+                    freeslots.append({'start' : lastvend,
+                                      'end' : vstart,
+                                      'duration' : vhole })
+
+            lastvend = vend
+        return freeslots
 
 class Video:
     def __init__(self, frikanalen, video_id):
