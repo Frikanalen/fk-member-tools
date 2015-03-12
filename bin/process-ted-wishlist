@@ -122,6 +122,10 @@ sub submit_new_video {
     # FIXME figure out how to detect when login fail
     print $mech->status(), "\n";
 
+    my $header = $ref->{'description'} . "\n\n" .
+        "TED talk downloaded from The Internet Archive.";
+    my $name = "TED - " . $ref->{'title'};
+
     # FIXME POST via the API did not work, so use the member page form
     # until it work.
     if (1) {
@@ -130,11 +134,8 @@ sub submit_new_video {
 #       print Dumper($ref);
 
         $mech->field('duration', $ref->{'runtime'});
-        $mech->field('header', $ref->{'description'} . "\n\n" .
-                     "TED talk downloaded from The Internet Archive.");
-        $mech->field('name', "TED - " . $ref->{'title'});
-        $mech->field('description',
-                     "TED talk downloaded from The Internet Archive.");
+        $mech->field('header', $header);
+        $mech->field('name', $name);
         $mech->field('ref_url', $url);
 
         my $form = $mech->current_form();
@@ -157,7 +158,31 @@ sub submit_new_video {
 
         $mech->submit();
     } else {
-        # FIXME Use $videosurl.
+        # Fetch API token
+        my $jsonstr = $mech->get($tokenurl);
+        my $json = decode_json($jsonstr);
+        print "J: ", Dumper($json), "\n";
+        my $token = $json->{'key'};
+        $mech->add_header('Authorization' => "Token $token");
+
+        my $video = {
+            "name"             => $name,
+            "header"           => $header,
+            "duration"         => $ref->{'runtime'},
+            "categories"       => [ "Samfunn" ],
+            "has_tono_records" => 0,
+            "publish_on_web"   => 1,
+            "is_filler"        => 1,
+            "ref_url"          => $url,
+#            "editor"           => "pere",
+#            "organization"     => "NUUG",
+        };
+
+        my $j = encode_json $video;
+        $mech->get($apiurl);
+        $mech->post($videosurl,
+                    'Content-Type' => 'application/json',
+                    Content => $j);
     }
 
 #    print $mech->content(),"\n";
