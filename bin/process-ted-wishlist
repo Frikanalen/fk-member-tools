@@ -4,7 +4,8 @@
 # files to for Frikanalen.
 #
 # To run on Debian, install these packages:
-#   perl-modules libwww-mechanize-perl libjson-perl libio-prompter-perl
+#   perl-modules libwww-mechanize-perl libjson-perl libio-prompter-perl \
+#      libconfig-tiny-perl
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
