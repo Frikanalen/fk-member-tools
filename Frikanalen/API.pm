@@ -15,7 +15,9 @@ our @EXPORT  = qw(
                   process_videos
                   );
 
-my $videosurl = 'http://beta.frikanalen.tv/api/videos/';
+our $baseurl   = 'http://beta.frikanalen.tv';
+our $apiurl    = "$baseurl/api";
+our $videosurl = "$apiurl/videos/";
 
 # Convert "04:05.12" to 4 * 60 + 5.12
 sub parse_duration {
