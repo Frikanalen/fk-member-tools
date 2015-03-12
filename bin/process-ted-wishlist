@@ -222,7 +222,12 @@ sub find_subtitle {
 
 sub process_ted_list {
     my ($listfile) = @_;
-    my @entries = load_entries($listfile);
+    my @entries;
+    if ($listfile =~ m/https?:/) {
+        push(@entries, $listfile);
+    } else {
+        @entries = load_entries($listfile);
+    }
 
     my $mech = WWW::Mechanize->new();
 
