@@ -25,10 +25,14 @@ use Config::Tiny;
 
 use vars qw($username $password);
 
-my $loginurl = 'http://beta.frikanalen.tv/api/api-auth/login/?next=/api/';
-my $videosurl = 'http://beta.frikanalen.no/api/videos';
-my $addvideourl = 'http://beta.frikanalen.tv/members/video/new/';
+my $baseurl     = $Frikanalen::API::baseurl;
+my $apiurl      = $Frikanalen::API::apiurl;
+my $loginurl    = "$apiurl/api-auth/login/?next=/api/";
+my $videosurl   = $Frikanalen::API::videosurl;
+my $addvideourl = "$baseurl/members/video/new/";
+my $tokenurl    = "$apiurl/obtain-token";
 
+# Directory on ftp.frikanalen.tv where files are stored
 my $mediadir = "/tank/new_media/media";
 
 my $ftphost = 'ftp.frikanalen.tv';
