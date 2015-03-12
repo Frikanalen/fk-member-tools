@@ -159,9 +159,9 @@ sub submit_new_video {
         $mech->submit();
     } else {
         # Fetch API token
-        my $jsonstr = $mech->get($tokenurl);
+        $mech->get($tokenurl);
+        my $jsonstr = $mech->content();
         my $json = decode_json($jsonstr);
-        print "J: ", Dumper($json), "\n";
         my $token = $json->{'key'};
         $mech->add_header('Authorization' => "Token $token");
 
@@ -170,16 +170,16 @@ sub submit_new_video {
             "header"           => $header,
             "duration"         => $ref->{'runtime'},
             "categories"       => [ "Samfunn" ],
-            "has_tono_records" => 0,
-            "publish_on_web"   => 1,
-            "is_filler"        => 1,
+            "has_tono_records" => 'false',
+            "publish_on_web"   => 'true',
+            "is_filler"        => 'true',
             "ref_url"          => $url,
 #            "editor"           => "pere",
 #            "organization"     => "NUUG",
         };
 
-        my $j = encode_json $video;
-        $mech->get($apiurl);
+        my $j = encode_json($video);
+#        $mech->get($apiurl);
         $mech->post($videosurl,
                     'Content-Type' => 'application/json',
                     Content => $j);
