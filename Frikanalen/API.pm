@@ -19,12 +19,14 @@ our $baseurl   = 'http://beta.frikanalen.tv';
 our $apiurl    = "$baseurl/api";
 our $videosurl = "$apiurl/videos/";
 
+# Return duration as fractional seconds.
 # Convert "04:05.12" to 4 * 60 + 5.12
 sub parse_duration {
     my $durationstr = shift;
     my @parts = split(/:/, $durationstr);
-    my $duration = 0;
-    while (my $part = shift @parts) {
+    my $duration = 0.0;
+    for my $part (@parts) {
+#        print "$part $duration\n";
         $duration *= 60;
         $duration += int($part);
     }
