@@ -37,7 +37,8 @@ sub get_tono_stats {
         'tonosec' => 0,
         'notonosec' => 0,
     };
-    process_videos(\&countvideos, $statsref, undef);
+    my $f = new Frikanalen::API();
+    $f->process_videos(\&countvideos, $statsref, undef);
     return ($statsref->{'tono'},
             $statsref->{'notono'},
             $statsref->{'tonosec'},
