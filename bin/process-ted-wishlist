@@ -335,7 +335,7 @@ sub process_ted_list {
                            '-threads', '8',
                            '-vcodec', 'libtheora',
                            '-acodec', 'libvorbis',
-                           '-qscale:v', '2',
+                           '-qscale:v', '5',
                            '-qscale:a', '2',
                            '-vf', 'scale=720:-1',
                            $ogvfile);
