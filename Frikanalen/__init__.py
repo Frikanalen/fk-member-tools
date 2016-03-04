@@ -341,6 +341,8 @@ Return video duration as a datetime.timedelta.
         return self.duration2timedelta(self.duration())
     def name(self):
         return self.meta['name']
+    def header(self):
+        return self.meta['header']
     def __repr__(self):
         return str({'id' : self.id, 'meta': self.meta})
     def __str__(self):
