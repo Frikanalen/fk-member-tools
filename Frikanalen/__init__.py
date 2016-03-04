@@ -121,8 +121,10 @@ with POST request.  Using urllib2 until I find a way to do it.
             headers[tup[0]] = tup[1]
         req = urllib2.Request(url, data = json_data, headers = headers)
         f = urllib2.urlopen(req)
-        # FIXME check return value
-        return f
+        if 200 == f.getcode():
+            return f
+        else:
+            return None
 
 class Schedule:
     scheduledata = []
@@ -193,8 +195,11 @@ The timestamp argument should be a datetime.datetime object.
                             "http://localhost:8000/api/videos/%d" % video.id,
                         "starttime"       : starttime.strftime('%Y-%m-%dT%H:%M:%SZ'),
                         }
-                    self.frikanalen.json_post(self.frikanalen.scheduleurl, sentitem)
-                    return True
+                    if self.frikanalen.json_post(self.frikanalen.scheduleurl,
+                                                 sentitem):
+                        return True
+                    else:
+                        return False
                 else:
                     raise Exception("no free spot in schedule at that time")
             lastend = fstarttime + fduration
