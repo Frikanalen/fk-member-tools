@@ -87,6 +87,49 @@ need to use the django pages for some operations.
         # Document that we are logged in as a user
         self.username = username
 
+    def video_new(self, videoinfo):
+        """
+The videoinfo argument is a hash with these keys:
+
+        "name"             => $name,
+        "header"           => $header,
+        "duration"         => $ref->{'runtime'},
+
+        "has_tono_records" => 'true',
+        "publish_on_web"   => 'false',
+        "is_filler"        => 'false',
+        "ref_url"          => $url,
+
+        "categories"       => [ "Samfunn", ... ],
+
+        "editor"           => "pere",
+        "organization"     => "NUUG",
+
+"""
+        if videoinfo is None:
+             raise Exception("missing required argument videoinfo")
+        reqfields = ['name','editor','organization','categories']
+        missingfields = []
+        for f in reqfields:
+            if f not in videoinfo.keys():
+                missingfields.append(f)
+        if 0 < len(missingfields):
+            raise ValueError("missing required fields: %s" %
+                             ",".join(missingfields))
+        res = self.json_post(self.videosurl, videoinfo)
+        if res is None:
+            return None
+        jsonstr = res.read()
+        print "JSON result", jsonstr
+        j = json.loads(jsonstr.decode('utf8'))
+        print j
+        if j is None:
+            raise Exceptin("incorrect return value from video creation")
+        vid = j['id']
+        print "Got video ID", vid
+        video = Video(self, vid)
+        return video
+
     def video_find(self, video_id = None, query = None):
         if video_id is not None:
             v = Video(self, video_id)
@@ -121,7 +164,7 @@ with POST request.  Using urllib2 until I find a way to do it.
             headers[tup[0]] = tup[1]
         req = urllib2.Request(url, data = json_data, headers = headers)
         f = urllib2.urlopen(req)
-        if 200 <= f.getcode() && f.getcode() < 300:
+        if 200 <= f.getcode() and f.getcode() < 300:
             return f
         else:
             return None
