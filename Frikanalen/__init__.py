@@ -93,7 +93,7 @@ need to use the django pages for some operations.
             return [v]
 
         if query is not None:
-            url = '%s/?page_size=10000&q=%s' % (self.videosurl, query)
+            url = '%s?page_size=10000&q=%s' % (self.videosurl, query)
 #            print url
             self.mech.open(url)
             jsonstr = self.mech.response().read()
@@ -251,7 +251,7 @@ class Video:
         self._load_info()
 
     def _load_info(self):
-        self.frikanalen.mech.open('%s/%d' % (self.frikanalen.videosurl, self.id))
+        self.frikanalen.mech.open('%s%d' % (self.frikanalen.videosurl, self.id))
         jsonstr = self.frikanalen.mech.response().read()
 
         # FIXME move meta hash into member attributes?
