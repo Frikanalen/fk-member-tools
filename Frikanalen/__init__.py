@@ -7,6 +7,9 @@ import getpass
 import ConfigParser
 import urllib2
 import mechanize
+import pipes
+import re
+from subprocess import *
 
 class API:
     apiurl        = 'http://beta.frikanalen.no/api'
