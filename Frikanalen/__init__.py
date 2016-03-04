@@ -13,8 +13,8 @@ class API:
     if 'FRIKANALEN_DEV' in os.environ:
         apiurl        = 'http://frikanalen-dev.nuug.no/api'
     loginurl      = '%s/api-auth/login/?next=/api/' % apiurl
-    videosurl     = '%s/videos' % apiurl
-    videofilesurl = '%s/videofiles' % apiurl
+    videosurl     = '%s/videos/' % apiurl
+    videofilesurl = '%s/videofiles/' % apiurl
     scheduleurl   = '%s/scheduleitems/' % apiurl
     tokenurl      = '%s/obtain-token' % apiurl
 
