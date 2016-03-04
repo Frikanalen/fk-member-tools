@@ -121,7 +121,7 @@ with POST request.  Using urllib2 until I find a way to do it.
             headers[tup[0]] = tup[1]
         req = urllib2.Request(url, data = json_data, headers = headers)
         f = urllib2.urlopen(req)
-        if 200 == f.getcode():
+        if 200 <= f.getcode() && f.getcode() < 300:
             return f
         else:
             return None
