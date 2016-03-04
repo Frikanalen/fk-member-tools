@@ -312,6 +312,23 @@ class Video:
             s += float(part)
         return datetime.timedelta(0, s)
 
+    @staticmethod
+    def extract_videofile_duration(filepath):
+        """
+Run ffprobe to get the video file duration, return duration using the
+"hh:mm:ss.ss" notation.
+
+"""
+        cmd = u'ffprobe {} 2>&1'.format(pipes.quote(filepath))
+        sb = Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE)
+        output = sb.stdout.read()
+        sb.kill()
+        for line in output.split('\n'):
+            m = re.match( r".* Duration: (\S+),.*", line)
+            if m:
+                return m.group(1)
+        return None
+
     def duration(self):
         """
 Return video duration as a datetime.timedelta.
