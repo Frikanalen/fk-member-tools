@@ -9,11 +9,14 @@ import urllib2
 import mechanize
 
 class API:
-    apiurl        = 'http://beta.frikanalen.no/api/'
-    loginurl      = 'http://beta.frikanalen.no/api/api-auth/login/?next=/api/'
-    videosurl     = 'http://beta.frikanalen.no/api/videos'
-    scheduleurl   = 'http://beta.frikanalen.no/api/scheduleitems/'
-    tokenurl      = 'http://beta.frikanalen.no/api/obtain-token'
+    apiurl        = 'http://beta.frikanalen.no/api'
+    if 'FRIKANALEN_DEV' in os.environ:
+        apiurl        = 'http://frikanalen-dev.nuug.no/api'
+    loginurl      = '%s/api-auth/login/?next=/api/' % apiurl
+    videosurl     = '%s/videos' % apiurl
+    videofilesurl = '%s/videofiles' % apiurl
+    scheduleurl   = '%s/scheduleitems/' % apiurl
+    tokenurl      = '%s/obtain-token' % apiurl
 
     mech     = None
     schedule = None
