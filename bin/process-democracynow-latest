@@ -39,6 +39,12 @@ to
 def fix_group_access(path):
     chgrp(path, "fkmedia_rw")
 
+def makedir(dir):
+    if not os.path.isdir(dir):
+        os.mkdir(dir, 0775)
+        os.chmod(dir, 0775) # FIXME figure out why this is needed?  umask?
+        fix_group_access(dir)
+
 def main():
       api = Frikanalen.API()
       api.login()
@@ -57,7 +63,7 @@ def main():
             ref_url = map_id_to_archiveorg(entry['id'])
             if ref_url in vrefs:
                   print "warning: alrady uploaded %s to Frikanalen" % ref_url
-                  if 0 < len(vrefs[ref_url].files):
+                  if 0 < len(vrefs[ref_url].files()):
                         print "info: already got files uploaded, skip."
                         continue                        
                   else:
@@ -107,10 +113,10 @@ def main():
                   video = api.video_new(videoinfo)
 
             # Move downloaded file into place
-            origdir = "%s/%d/original" % (mediedir, video.id)
+            origdir = "%s/%d/original" % (mediadir, video.id)
             newpath = "%s/%s" % (origdir, videofile)
-            print "moving %s\nto %s" %(filepath, origdir)
-            makedir("%s/%s" % ( mediedir, video.id))
+            print "moving %s\nto %s" %(videofile, origdir)
+            makedir("%s/%s" % ( mediadir, video.id))
             makedir(origdir)
             shutil.move(videofile, newpath)
             fix_group_access(newpath)
