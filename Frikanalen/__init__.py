@@ -104,6 +104,7 @@ The videoinfo argument is a hash with these keys:
         "publish_on_web"   => 'false',
         "is_filler"        => 'false',
         "ref_url"          => $url,
+        "proper_import"    => 'true',
 
         "categories"       => [ "Samfunn", ... ],
 
@@ -121,6 +122,9 @@ The videoinfo argument is a hash with these keys:
         if 0 < len(missingfields):
             raise ValueError("missing required fields: %s" %
                              ",".join(missingfields))
+        # Make sure the default is 'true', see issue #82
+        if 'proper_import' not in videoinfo:
+            videoinfo['proper_import'] = 'true'
         res = self.json_post(self.videosurl, videoinfo)
         if res is None:
             return None
