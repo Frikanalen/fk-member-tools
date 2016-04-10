@@ -10,6 +10,7 @@ import mechanize
 import pipes
 import re
 from subprocess import *
+import urllib
 
 class API:
     apiurl        = 'http://beta.frikanalen.no/api'
@@ -140,7 +141,8 @@ The videoinfo argument is a hash with these keys:
             return [v]
 
         if query is not None:
-            url = '%s?page_size=10000&q=%s' % (self.videosurl, query)
+            url = '%s?page_size=10000&q=%s' % (self.videosurl,
+                                               urllib.quote_plus(query))
 #            print url
             self.mech.open(url)
             jsonstr = self.mech.response().read()
