@@ -14,6 +14,7 @@ from subprocess import *
 class API:
     apiurl        = 'http://beta.frikanalen.no/api'
     if 'FRIKANALEN_DEV' in os.environ:
+        print "info: using development API server"
         apiurl        = 'http://frikanalen-dev.nuug.no/api'
     loginurl      = '%s/api-auth/login/?next=/api/' % apiurl
     videosurl     = '%s/videos/' % apiurl
