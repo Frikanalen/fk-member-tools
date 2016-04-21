@@ -114,7 +114,7 @@ The videoinfo argument is a hash with these keys:
 """
         if videoinfo is None:
              raise Exception("missing required argument videoinfo")
-        reqfields = ['name','editor','organization','categories']
+        reqfields = ['name','categories']
         missingfields = []
         for f in reqfields:
             if f not in videoinfo.keys():
