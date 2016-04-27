@@ -143,8 +143,8 @@ def main():
             apipath = origdir.replace("%s/" % mediadir, "")
 
             # Syntesize thumbnails and video files
-            call([/tank/pere/fk-member-tools/generate-missing-jpeg, str(video.id)])
-            call([/tank/pere/fk-member-tools/generate-missing-ogv, str(video.id)])
+            call(['/tank/pere/fk-member-tools/generate-missing-jpeg', str(video.id)])
+            call(['/tank/pere/fk-member-tools/generate-missing-ogv', str(video.id)])
 
             # Register file using API
             # FIXME make this non-interactive
