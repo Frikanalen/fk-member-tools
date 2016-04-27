@@ -13,7 +13,10 @@ import feedparser
 import os
 import random
 import time
+import shutil
 import grp
+from urlparse import urlparse
+from subprocess import call
 
 import Frikanalen
 
@@ -91,13 +94,11 @@ def main():
                   if 'enclosure' == link['rel']:
                         videourl = link['href']
             print videourl
-            from urlparse import urlparse
             o = urlparse(videourl)
             videofile = os.path.basename(o.path)
 
             if not os.path.exists(videofile):
                   print "info: downloading %s to %s" % (videourl, videofile)
-                  from subprocess import call
                   if True:
                         call(["wget", "--quiet", "-O", videofile, videourl])
                         duration = Frikanalen.Video.extract_videofile_duration(videofile)
