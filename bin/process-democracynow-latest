@@ -36,13 +36,15 @@ Make RSS IDs to the entry on archive.org, to have some stable and
 unique ID to store in the ref field in Frikanalen.
 
 Rewrite
-  http://www.democracynow.org/dn2016-0408-static-mp4
+  http://www.democracynow.org/dn2016-0408-static-mp4 and
+  https://archive.org/details/dn2016-0421-static-hd-mp4
 to
   https://archive.org/details/dn2016-0408_vid
 """
       id = id.replace('http://www.democracynow.org/',
                       'https://archive.org/details/')
       id = id.replace('-static-mp4', '_vid')
+      id = id.replace('-static-hd-mp4', '_vid')
       return id
 
 def chgrp(path, group):
