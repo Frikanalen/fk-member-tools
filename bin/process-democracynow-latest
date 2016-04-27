@@ -21,6 +21,11 @@ from subprocess import call
 import Frikanalen
 
 # FIXME figure out which source format we want to use
+# Based on options from <URL: http://www.democracynow.org/static >
+# The web page do not list the RSS links 14:00-15:00 CET, and shortly
+# after this updated RSS files with todays broadcast is available.
+#rssurl = 'http://www.democracynow.org/podcast-stations-hd-mp4.xml'
+#rssurl = 'http://www.democracynow.org/podcast-stations-mpeg.xml'
 rssurl = 'http://www.democracynow.org/podcast-stations-mp4.xml'
 
 mediadir = '/tank/new_media/media'
