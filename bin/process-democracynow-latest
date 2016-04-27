@@ -85,6 +85,7 @@ def main():
 
       for entry in d.entries:
             ref_url = map_id_to_archiveorg(entry['id'])
+            print "ref_url =", ref_url
             if ref_url in vrefs:
                   print "warning: alrady uploaded %s to Frikanalen" % ref_url
                   if 0 < len(vrefs[ref_url].files()):
