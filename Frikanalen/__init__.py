@@ -360,10 +360,13 @@ Return video duration as a datetime.timedelta.
         return self.meta[item]
 
     def files(self):
-        url='http://frikanalen-dev.nuug.no/api/videofiles/?video_id=%d' % self.id
+        url = '%s/?video_id=%d' % (self.frikanalen.videofilesurl, self.id)
+#        print url
         self.frikanalen.mech.open(url)
         jsonstr = self.frikanalen.mech.response().read()
+#        print jsonstr
         res = json.loads(jsonstr.decode('utf8'))
+#        print res
         files = []
         for f in res['results']:
             files.append(f)
