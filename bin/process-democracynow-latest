@@ -36,6 +36,19 @@ to
       id = id.replace('-static-mp4', '_vid')
       return id
 
+def chgrp(path, group):
+    """Set group of target path
+    """
+#    print "chgrp(", path, ",", group, ")"
+    try:
+        g = grp.getgrnam(group)[2]
+    except KeyError:
+        raise Exception("unknown group %s" % group)
+    try:
+        os.chown(path, -1, g)
+    except EnvironmentError, e:
+        raise Exception("could not change group")
+
 def fix_group_access(path):
     chgrp(path, "fkmedia_rw")
 
@@ -84,17 +97,19 @@ def main():
             if not os.path.exists(videofile):
                   print "info: downloading %s to %s" % (videourl, videofile)
                   from subprocess import call
-                  call(["wget", "--quiet", "-O", videofile, videourl])
+                  if True:
+                        call(["wget", "--quiet", "-O", videofile, videourl])
+                        duration = Frikanalen.Video.extract_videofile_duration(videofile)
+                  else:
+                        # FIXME hack while wget is disabled during development.
+                        if duration is None:
+                              duration = "0:0"
+
             else:
                   print "info: not downloading %s, already present" % videourl
 
             if video is None:
                   pdate = time.strftime("%d. %B %Y", entry['published_parsed'])
-                  duration = Frikanalen.Video.extract_videofile_duration(videofile)
-
-                  # FIXME hack while wget is disabled during development.
-                  if duration is None:
-                        duration = "0:0"
 
                   videoinfo = {
                         'name'             : 'Democracy Now! %s' % pdate,
