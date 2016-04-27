@@ -58,7 +58,9 @@ def main():
 #      return
 
       d = feedparser.parse(rssurl)
-#      print d['feed']#['links']
+      # Sort list with oldest first
+      d.entries.sort(key=lambda entry: entry.published_parsed)
+
       for entry in d.entries:
             ref_url = map_id_to_archiveorg(entry['id'])
             if ref_url in vrefs:
@@ -82,8 +84,7 @@ def main():
             if not os.path.exists(videofile):
                   print "info: downloading %s to %s" % (videourl, videofile)
                   from subprocess import call
-                  # FIXME enable downloading
-#                  call(["wget", "--quiet", "-O", videofile, videourl])
+                  call(["wget", "--quiet", "-O", videofile, videourl])
             else:
                   print "info: not downloading %s, already present" % videourl
 
@@ -100,10 +101,13 @@ def main():
                         'header'           : '',
                         'duration'         : duration,
                         
-                        'has_tono_records' : 'true', # FIXME
-                        'publish_on_web'   : 'true',
-                        'is_filler'        : 'false', # FIXME
+                        'has_tono_records' : False,
+                        'publish_on_web'   : True,
+                        'is_filler'        : False,
                         'ref_url'          : ref_url,
+
+                        'organization'     : 'Bevegelsen for sosialisme',
+                        'editor'           : 'otelles',
                   
                         'categories'       : [ 'Samfunn' ],
                         }
@@ -120,20 +124,17 @@ def main():
             makedir(origdir)
             shutil.move(videofile, newpath)
             fix_group_access(newpath)
+            apipath = origdir.replace("%s/" % mediadir, "")
 
             # Register file using API
             # FIXME make this non-interactive
-            call(["~pere/frikanalen/utils/videofiles-update", video.id])
-            f = Videofile.new(video.id, "path/to/file", "original")
-            video.addfile(f)
+            if True:
+                  call([os.path.expanduser('~pere/frikanalen/utils/videofiles-update'), str(video.id)])
+            else:
+                  f = Videofile.new(video.id, apipath, "original")
+                  video.addfile(f)
 
-            # FIXME schedule the entry, when?
-            #startime = datetime(tomorrow at 16?)
-            try:
-                  api.insert(video, starttime)
-            except Exception, e:
-                  print "error: not able to schedule entry at ",  starttime
-                  raise
+            # Scheduling is done elsewhere, by the automatic scheduling system
 
 if __name__=="__main__":
       main()
