@@ -184,17 +184,11 @@ def main():
                 fix_group_access(newpath)
                 apipath = origdir.replace("%s/" % mediadir, "")
 
-                # Syntesize thumbnails and video files
+                # Synthesize thumbnails and video files
                 call(['/tank/pere/fk-member-tools/generate-missing-jpeg', str(video.id)])
+                call([os.path.expanduser('~pere/frikanalen/utils/videofiles-update'), '--autoappend', str(video.id)])
                 call(['/tank/pere/fk-member-tools/generate-missing-ogv', str(video.id)])
-
-                # Register file using API
-                # FIXME make this non-interactive
-                if True:
-                      call([os.path.expanduser('~pere/frikanalen/utils/videofiles-update'), '--autoappend', str(video.id)])
-                else:
-                      f = Videofile.new(video.id, apipath, "original")
-                      video.addfile(f)
+                call([os.path.expanduser('~pere/frikanalen/utils/videofiles-update'), '--autoappend', str(video.id)])
             return # FIXME during testing
 if __name__=="__main__":
       main()
