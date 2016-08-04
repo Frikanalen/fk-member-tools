@@ -189,6 +189,5 @@ def main():
                 call([os.path.expanduser('~pere/frikanalen/utils/videofiles-update'), '--autoappend', str(video.id)])
                 call(['/tank/pere/fk-member-tools/generate-missing-ogv', str(video.id)])
                 call([os.path.expanduser('~pere/frikanalen/utils/videofiles-update'), '--autoappend', str(video.id)])
-            return # FIXME during testing
 if __name__=="__main__":
       main()
