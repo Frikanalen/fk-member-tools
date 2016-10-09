@@ -1,0 +1,156 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+#
+# Fetch RSS from Debconf
+# Figure out if we already got the video in Frikanalen
+# If not, download video file and register it in Frikanalen as new video entry.
+
+import datetime
+import feedparser
+import os
+import random
+import time
+import shutil
+import grp
+from urlparse import urlparse
+from subprocess import call
+import lxml.html
+import urllib2
+import ssl
+
+import Frikanalen
+
+rssurl = 'https://media.ccc.de/c/32c3/podcast/webm.xml'
+
+mediadir = '/tank/new_media/media'
+
+debug = True
+dryrun = False
+
+def info(msg):
+      global debug
+      if debug:
+            print msg
+
+def chgrp(path, group):
+    """Set group of target path
+    """
+#    print "chgrp(", path, ",", group, ")"
+    try:
+        g = grp.getgrnam(group)[2]
+    except KeyError:
+        raise Exception("unknown group %s" % group)
+    try:
+        os.chown(path, -1, g)
+    except EnvironmentError, e:
+        raise Exception("could not change group")
+
+def fix_group_access(path):
+    chgrp(path, "fkmedia_rw")
+
+def makedir(dir):
+    if not os.path.isdir(dir):
+        os.mkdir(dir, 0775)
+        os.chmod(dir, 0775) # FIXME figure out why this is needed?  umask?
+        fix_group_access(dir)
+
+def fakesslcontext():
+    ctx = ssl.create_default_context()
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
+    return ctx
+
+def main():
+      api = Frikanalen.API()
+      api.login()
+
+      videos = api.video_find(query="32C3")
+      vrefs = {}
+      for video in videos:
+            vrefs[video['ref_url']] = video
+#            print video.files()
+#      return
+
+      d = feedparser.parse(rssurl)
+      # Sort list with oldest first
+      d.entries.sort(key=lambda entry: entry.published_parsed)
+
+      for entry in d.entries:
+            ref_url = entry['id']
+
+            title = entry['title']
+            description = entry['description']
+            author = entry['author']
+            info("ref_url = %s" % ref_url)
+            if ref_url in vrefs:
+                  info("warning: alrady uploaded %s to Frikanalen" % ref_url)
+                  if 0 < len(vrefs[ref_url].files()):
+                        info("info: already got files uploaded, skipping entry.")
+                        continue                        
+                  else:
+                        info("info: entry missing files, should upload anyway.")
+                        video = vrefs[ref_url]
+            else:
+                  video = None
+            for link in entry['links']:
+                  if 'enclosure' == link['rel']:
+                        videourl = link['href']
+            info(videourl)
+            o = urlparse(videourl)
+            videofile = os.path.basename(o.path)
+
+            if not os.path.exists(videofile):
+                  info("info: downloading %s to %s" % (videourl, videofile))
+                  if True:
+                        call(["wget", "--quiet", "-O", videofile, videourl])
+                        duration = Frikanalen.Video.extract_videofile_duration(videofile)
+                  else:
+                      # FIXME hack while wget is disabled during dhttps://media.ccc.de/c/32c3/podcast/webm.xml'evelopment.
+                        if duration is None:
+                              duration = "0:0"
+            else:
+                  info("info: not downloading %s, already present" % videourl)
+                  duration = Frikanalen.Video.extract_videofile_duration(videofile)
+
+            if video is None:
+                  pdate = time.strftime("%d. %B %Y", entry['published_parsed'])
+
+                  header = "%s\n\n session with %s during 32C3" % ( description, author )
+
+                  videoinfo = {
+                        'name'             : '%s - 32C3' % title,
+                        'header'           : header,
+                        'duration'         : duration,
+                        
+                        'has_tono_records' : False,
+                        'publish_on_web'   : True,
+                        'is_filler'        : True,
+                        'ref_url'          : ref_url,
+
+                        'organization'     : 'NUUG',
+                        'editor'           : 'daven',
+                  
+                        'categories'       : [ 'Samfunn' ],
+                        }
+                  info(videoinfo)
+                  if not dryrun:
+                      video = api.video_new(videoinfo)
+
+            if not dryrun:
+                # Move downloaded file into place
+                origdir = "%s/%d/original" % (mediadir, video.id)
+                newpath = "%s/%s" % (origdir, videofile)
+                info("moving %s\nto %s" %(videofile, origdir))
+                makedir("%s/%s" % ( mediadir, video.id))
+                makedir(origdir)
+                shutil.move(videofile, newpath)
+                fix_group_access(newpath)
+                apipath = origdir.replace("%s/" % mediadir, "")
+
+                # Synthesize thumbnails and video files
+                call(['/tank/pere/fk-member-tools/generate-missing-jpeg', str(video.id)])
+                call([os.path.expanduser('~pere/frikanalen/utils/videofiles-update'), '--autoappend', str(video.id)])
+                call(['/tank/pere/fk-member-tools/generate-missing-ogv', str(video.id)])
+                call([os.path.expanduser('~pere/frikanalen/utils/videofiles-update'), '--autoappend', str(video.id)])
+if __name__=="__main__":
+      main()
