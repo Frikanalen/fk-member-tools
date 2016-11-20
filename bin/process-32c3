@@ -25,7 +25,7 @@ rssurl = 'https://media.ccc.de/c/32c3/podcast/webm.xml'
 mediadir = '/tank/new_media/media'
 
 debug = True
-dryrun = False
+dryrun = True 
 
 def info(msg):
       global debug
@@ -76,8 +76,7 @@ def main():
       d.entries.sort(key=lambda entry: entry.published_parsed)
 
       for entry in d.entries:
-            ref_url = entry['id']
-
+            ref_url = entry['links'][0]['href']
             title = entry['title']
             description = entry['description']
             author = entry['author']
@@ -93,7 +92,7 @@ def main():
             else:
                   video = None
             for link in entry['links']:
-                  if 'enclosure' == link['rel']:
+                  if link['rel'] == 'enclosure':
                         videourl = link['href']
             info(videourl)
             o = urlparse(videourl)
@@ -105,7 +104,7 @@ def main():
                         call(["wget", "--quiet", "-O", videofile, videourl])
                         duration = Frikanalen.Video.extract_videofile_duration(videofile)
                   else:
-                      # FIXME hack while wget is disabled during dhttps://media.ccc.de/c/32c3/podcast/webm.xml'evelopment.
+                      # FIXME hack while wget is disabled during development.
                         if duration is None:
                               duration = "0:0"
             else:
@@ -118,7 +117,7 @@ def main():
                   header = "%s\n\n session with %s during 32C3" % ( description, author )
 
                   videoinfo = {
-                        'name'             : '%s - 32C3' % title,
+                        'name'             : title,
                         'header'           : header,
                         'duration'         : duration,
                         
