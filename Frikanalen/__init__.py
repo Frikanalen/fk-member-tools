@@ -13,7 +13,7 @@ from subprocess import *
 import urllib
 
 class API:
-    apiurl        = 'http://beta.frikanalen.no/api'
+    apiurl        = 'https://frikanalen.no/api'
     if 'FRIKANALEN_DEV' in os.environ:
         print "info: using development API server"
         apiurl        = 'http://frikanalen-dev.nuug.no/api'

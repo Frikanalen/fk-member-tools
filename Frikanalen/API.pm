@@ -15,7 +15,7 @@ our @EXPORT  = qw(
                   process_videos
                   );
 
-our $baseurl   = 'http://beta.frikanalen.no';
+our $baseurl   = 'https://frikanalen.no';
 our $apiurl    = "$baseurl/api";
 our $videosurl = "$apiurl/videos/";
 
