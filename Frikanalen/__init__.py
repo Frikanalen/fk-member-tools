@@ -312,7 +312,10 @@ class Video:
 
     @staticmethod
     def start2datetime(timestamp):
-        return datetime.datetime.strptime(timestamp, '%Y-%m-%dT%H:%M:%SZ')
+        if '.' in timestamp:
+            return datetime.datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S.%fZ")
+        else:
+            return datetime.datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%SZ")
 
     @staticmethod
     def duration2timedelta(duration):
