@@ -9,7 +9,6 @@ import math
 import os
 import requests
 import sys
-from pprint import pprint
 
 import Frikanalen
 
@@ -18,7 +17,6 @@ upload_url = "https://upload.frikanalen.no/upload"
 
 def get_upload_token(api, video_id):
     url = "%s/videos/%d/upload_token" % (api.apiurl, video_id)
-    print(url)
     api.mech.open(url)
     jsonstr = api.mech.response().read()
     return json.loads(jsonstr.decode('UTF-8'))['upload_token']
@@ -35,19 +33,15 @@ def send_chunk(video_id, upload_token, filename, chunk_data, chunk=None, chunks=
     if chunk is not None:
         multipart_form_data['chunk'] = (None, str(chunk))
         multipart_form_data['chunks'] = (None, str(chunks))
-    if True:
-        bytes=len(multipart_form_data['file'][1])
-        multipart_form_data['file'] = (filename, '[%s bytes removed]' % bytes)
-        pprint(multipart_form_data)
     response = requests.post(upload_url, files=multipart_form_data)
 #    print(response.content)
     
 
-def upload(api, video_id, upload_token, filepath):
+def upload(args, api, video_id, filepath):
+    upload_token = get_upload_token(api, video_id)
     chunk_size = 1 * 1024 * 1024 # 1 MiB
     size = os.path.getsize(filepath)
     filename = os.path.basename(filepath)
-#    print(size, chunk_size)
     if size <= chunk_size:
         data = open(filepath, 'rb')
         send_chunk(video_id, upload_token, filename, data)
@@ -55,29 +49,32 @@ def upload(api, video_id, upload_token, filepath):
         f = open(filepath, 'rb')
         chunk = 0
         chunks = int(math.ceil(size*1.0 / chunk_size))
-#        print(math.ceil(size / chunk_size))
+        if args.progress:
+            from tqdm import tqdm
+            pbar = tqdm(total=100, unit='B', unit_scale=True)
         while chunk < chunks:
             chunk_data = f.read(chunk_size)
+            if args.progress:
+                pbar.update(len(chunk_data))
             send_chunk(video_id, upload_token, filename, chunk_data, chunk, chunks)
             chunk = chunk + 1
-
+        if args.progress:
+            pbar.close()
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--progress", help='show upload progress inforamtion')
-    parser.add_argument("--verbose", help='make script more verbose')
+    parser.add_argument("--progress", help='show upload progress inforamtion',
+                        action='store_true')
+    parser.add_argument("--verbose", help='make script more verbose',
+                        action='store_true')
     parser.add_argument("filepath", help='path to video file to upload')
     parser.add_argument("video_id", type=int, help='video ID to attach file to')
     args = parser.parse_args()
     
-    f = Frikanalen.API()
-    f.login()
-    filepath = args.filepath
-    video_id = args.video_id
-    upload_token = get_upload_token(f, video_id)
-    if opts.verbose:
-        print(upload_token)
-    upload(f, video_id, upload_token, filepath)
+    api = Frikanalen.API()
+    api.login()
+    upload(args, api, args.video_id, args.filepath)
+
 
 if '__main__' == __name__:
     main()
