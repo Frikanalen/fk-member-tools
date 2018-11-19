@@ -34,8 +34,10 @@ def send_chunk(video_id, upload_token, filename, chunk_data, chunk=None, chunks=
         multipart_form_data['chunk'] = (None, str(chunk))
         multipart_form_data['chunks'] = (None, str(chunks))
     response = requests.post(upload_url, files=multipart_form_data)
-#    print(response.content)
-    
+    j = json.loads(response.content.decode('UTF-8'))
+    if 'error' in j:
+        raise Exception("Failed to post chunk %d of %d chunks" % (chunk, chunks))
+
 
 def upload(args, api, video_id, filepath):
     upload_token = get_upload_token(api, video_id)
@@ -52,14 +54,16 @@ def upload(args, api, video_id, filepath):
         if args.progress:
             from tqdm import tqdm
             pbar = tqdm(total=100, unit='B', unit_scale=True)
-        while chunk < chunks:
-            chunk_data = f.read(chunk_size)
+        try:
+            while chunk < chunks:
+                chunk_data = f.read(chunk_size)
+                if args.progress:
+                    pbar.update(len(chunk_data))
+                send_chunk(video_id, upload_token, filename, chunk_data, chunk, chunks)
+                chunk = chunk + 1
+        finally:
             if args.progress:
-                pbar.update(len(chunk_data))
-            send_chunk(video_id, upload_token, filename, chunk_data, chunk, chunks)
-            chunk = chunk + 1
-        if args.progress:
-            pbar.close()
+                pbar.close()
 
 def main():
     parser = argparse.ArgumentParser()
