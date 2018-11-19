@@ -16,10 +16,14 @@ upload_url = "https://upload.frikanalen.no/upload"
 
 
 def get_upload_token(api, video_id):
+    global upload_url
     url = "%s/videos/%d/upload_token" % (api.apiurl, video_id)
     api.mech.open(url)
     jsonstr = api.mech.response().read()
-    return json.loads(jsonstr.decode('UTF-8'))['upload_token']
+    j = json.loads(jsonstr.decode('UTF-8'))
+    if 'upload_url' in j:
+        upload_url = j['upload_url']
+    return j['upload_token']
 
 
 def send_chunk(video_id, upload_token, filename, chunk_data, chunk=None, chunks=None):
